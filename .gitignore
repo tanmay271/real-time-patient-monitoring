@@ -1,0 +1,49 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+credentials
+aws-exports.js
+
+# SAM / CloudFormation
+.aws-sam/
+samconfig-local.toml
+packaged.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Node / frontend
+node_modules/
+dist/
+dist-ssr/
+.vite/
+npm-debug.log*
+yarn-error.log*
+
+# Personal AI-assistant config. Project conventions live in
+# docs/architecture.md §13; how any contributor drives their own tooling
+# is their business, so these stay out of the repo.
+CLAUDE.md
+.cursorrules
+.aider*
+.windsurfrules
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Test and local output
+tests/load/results/*.json
+!tests/load/results/.gitkeep
+*.local
