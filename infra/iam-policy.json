@@ -1,0 +1,79 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CloudFormationScoped",
+      "Effect": "Allow",
+      "Action": "cloudformation:*",
+      "Resource": "arn:aws:cloudformation:us-east-1:<ACCOUNT_ID>:stack/patient-monitoring-${aws:username}/*"
+    },
+    {
+      "Sid": "CloudFormationListAccount",
+      "Effect": "Allow",
+      "Action": ["cloudformation:ListStacks", "cloudformation:DescribeStacks", "cloudformation:GetTemplateSummary"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SAMDeployBuckets",
+      "Effect": "Allow",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::patient-monitoring-${aws:username}-*",
+        "arn:aws:s3:::patient-monitoring-${aws:username}-*/*",
+        "arn:aws:s3:::aws-sam-cli-managed-default*",
+        "arn:aws:s3:::aws-sam-cli-managed-default*/*"
+      ]
+    },
+    {
+      "Sid": "LambdaScoped",
+      "Effect": "Allow",
+      "Action": "lambda:*",
+      "Resource": "arn:aws:lambda:us-east-1:<ACCOUNT_ID>:function:patient-monitoring-${aws:username}-*"
+    },
+    {
+      "Sid": "DynamoDBDataPlane",
+      "Effect": "Allow",
+      "Action": ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:Query", "dynamodb:Scan"],
+      "Resource": [
+        "arn:aws:dynamodb:us-east-1:<ACCOUNT_ID>:table/patient-monitoring-${aws:username}-*",
+        "arn:aws:dynamodb:us-east-1:<ACCOUNT_ID>:table/patient-monitoring-${aws:username}-*/index/*"
+      ]
+    },
+    {
+      "Sid": "DynamoDBControlPlaneForDeploy",
+      "Effect": "Allow",
+      "Action": ["dynamodb:CreateTable", "dynamodb:DeleteTable", "dynamodb:DescribeTable", "dynamodb:UpdateTable", "dynamodb:TagResource", "dynamodb:DescribeTimeToLive", "dynamodb:UpdateTimeToLive"],
+      "Resource": "arn:aws:dynamodb:us-east-1:<ACCOUNT_ID>:table/patient-monitoring-${aws:username}-*"
+    },
+    {
+      "Sid": "ApiGatewayBroad",
+      "Effect": "Allow",
+      "Action": "apigateway:*",
+      "Resource": "arn:aws:apigateway:us-east-1::/apis*"
+    },
+    {
+      "Sid": "CognitoBroad",
+      "Effect": "Allow",
+      "Action": "cognito-idp:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "CloudFrontBroad",
+      "Effect": "Allow",
+      "Action": "cloudfront:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "IAMRolesScoped",
+      "Effect": "Allow",
+      "Action": ["iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:PassRole", "iam:AttachRolePolicy", "iam:DetachRolePolicy", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:GetRolePolicy", "iam:ListRolePolicies", "iam:ListAttachedRolePolicies", "iam:TagRole"],
+      "Resource": "arn:aws:iam::<ACCOUNT_ID>:role/patient-monitoring-${aws:username}-*"
+    },
+    {
+      "Sid": "LogsScoped",
+      "Effect": "Allow",
+      "Action": "logs:*",
+      "Resource": "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:/aws/lambda/patient-monitoring-${aws:username}-*"
+    }
+  ]
+}
