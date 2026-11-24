@@ -820,7 +820,6 @@ A contributor or coding session that needs one of these raises it rather than pi
 |---|---|
 | Chart library for trend views | `WEB-05` |
 | Cognito React integration library | `AUT-06` |
-| Test mocking approach for DynamoDB | `TST-01` |
 | Ingestion route protection mechanism | `AUT-04` |
 | Final threshold values | `ALR-01` |
 
