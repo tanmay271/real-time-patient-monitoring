@@ -1,0 +1,18 @@
+# Naming rule for every resource added by a later task: use Fn::Sub with the
+# pattern patient-monitoring-{Env}-<thing>. No literal resource names.
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Skeleton for the synthetic patient-monitoring application.
+
+Parameters:
+  Env:
+    Type: String
+    Description: Contributor's IAM username or demo.
+
+Globals:
+  Function:
+    Runtime: python3.13
+    Timeout: 10
+    MemorySize: 256
+
+Resources: {}

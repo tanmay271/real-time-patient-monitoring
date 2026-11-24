@@ -1,11 +1,41 @@
-# Collaborator access scoping (`INF-03`)
+# Infrastructure
 
-This note covers the IAM group and policy in `infra/iam-policy.json` — the
+This SAM template starts as a skeleton with no AWS resources; later tasks
+(`DAT-02`-`04`, `ING-01`, `API-02`, `AUT-01`, `INF-05`, ...) add resources
+using the naming convention documented in `template.yaml`. This file also
+covers the IAM group and policy in `infra/iam-policy.json` (`INF-03`) — the
 mechanism that lets six collaborators share one AWS account without being
-able to touch each other's resources. Deploy and teardown commands belong to
-`INF-01`'s template README and are not duplicated here.
+able to touch each other's resources.
 
-## Scoping approach
+## Deploy
+
+Deploy a contributor's isolated stack with:
+
+```text
+sam build && sam deploy --parameter-overrides Env=<your-name>
+```
+
+A one-off, task-scoped stack (used for a single task's deploy-and-verify
+step, then torn down) is deployed the same way but with a task suffix on
+both `Env` and the stack name, e.g. `Env=<your-name>-inf01`. See
+"Scoping approach" below for why the IAM policy has to know about this
+second naming shape too.
+
+## Teardown
+
+Remove a contributor's main stack with:
+
+```text
+sam delete --stack-name patient-monitoring-<your-name>
+```
+
+Remove a task-scoped stack the same way, with its own suffixed name:
+
+```text
+sam delete --stack-name patient-monitoring-<your-name>-<taskid>
+```
+
+## Scoping approach (`INF-03`)
 
 The policy is attached to an IAM group (`patient-monitoring-developers`).
 Every resource ARN in the policy uses the `${aws:username}` policy variable
@@ -25,11 +55,21 @@ the resources their policy lets them touch. Use the same IAM username as the
 `Env` value every time — the two are tied together by this policy, not just
 by convention.
 
+**Two stack-name shapes, both covered.** A collaborator's main development
+stack is named exactly `patient-monitoring-<username>` (no trailing
+`-<thing>`). A task-scoped, deploy-and-delete-same-day stack (see "Deploy"
+above) is named `patient-monitoring-<username>-<taskid>`, with an extra
+suffix. `CloudFormationScoped` in `infra/iam-policy.json` grants both shapes
+as two resource ARNs — `stack/patient-monitoring-${aws:username}/*` for the
+main stack, `stack/patient-monitoring-${aws:username}-*/*` for any
+task-scoped stack — so neither one needs a separate policy statement or a
+per-task edit.
+
 ## What is fully scoped by resource name, and what isn't
 
 | Service | Scoped to `patient-monitoring-${aws:username}-*`? | Notes |
 |---|---|---|
-| CloudFormation | Yes | `cloudformation:*` on the stack ARN; `ListStacks`/`DescribeStacks`/`GetTemplateSummary` stay account-wide because they are read-only and SAM needs them before a stack name is known. |
+| CloudFormation | Yes | `cloudformation:*` on both stack-name shapes above; `ListStacks`/`DescribeStacks`/`GetTemplateSummary` stay account-wide because they are read-only and SAM needs them before a stack name is known. |
 | S3 | Yes | Scoped to the collaborator's own bucket prefix, plus the shared `aws-sam-cli-managed-default*` bucket SAM creates for deployment artifacts (that bucket is not per-prefix by design). |
 | Lambda | Yes | `lambda:*` on the function-name ARN pattern. |
 | DynamoDB | Yes | Data-plane actions (`GetItem`/`PutItem`/`UpdateItem`/`Query`/`Scan`) and the control-plane actions needed to let `sam deploy` create/update/delete the collaborator's own tables, all scoped to the table ARN and its `/index/*`. |

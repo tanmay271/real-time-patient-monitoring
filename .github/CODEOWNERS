@@ -1,11 +1,1 @@
-# The SAM template is shared state: a change here lands in every
-# contributor's stack on their next deploy. Template maintainer reviews.
-/infra/                     @tanmay271
-
-# The authoritative contracts gate every other PR.
-/docs/architecture.md       @tanmay271
-/docs/api.md                @tanmay271
-/docs/data-dictionary.md    @tanmay271
-
-# Everything else: review rotates across the team, one approval from
-# anyone other than the author.
+* @tanmay271
