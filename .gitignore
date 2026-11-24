@@ -29,14 +29,6 @@ dist-ssr/
 npm-debug.log*
 yarn-error.log*
 
-# Personal AI-assistant config. Project conventions live in
-# docs/architecture.md §13; how any contributor drives their own tooling
-# is their business, so these stay out of the repo.
-CLAUDE.md
-.cursorrules
-.aider*
-.windsurfrules
-
 # Editors / OS
 .vscode/
 .idea/
