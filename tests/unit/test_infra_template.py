@@ -114,9 +114,16 @@ def test_readme_has_deploy_and_teardown_commands():
 
 
 def test_no_account_id_or_arn_in_committed_files():
+    # No real AWS account ID (a 12-digit literal) is ever allowed, in any
+    # file. A bare "arn:aws:" substring, however, is allowed in README.md:
+    # INF-03 documents real IAM AccessDenied output there with an
+    # "<ACCOUNT_ID>" placeholder (not a digit literal), which is itself an
+    # ARN-shaped string. template.yaml and samconfig.toml are fully
+    # parameterized and should never contain an ARN at all.
     for path in COMMITTED_FILES:
         text = path.read_text(encoding="utf-8")
         assert not ACCOUNT_ID_PATTERN.search(text), (
             f"possible account ID literal in {path}"
         )
-        assert not ARN_PATTERN.search(text), f"ARN literal found in {path}"
+        if path != README_PATH:
+            assert not ARN_PATTERN.search(text), f"ARN literal found in {path}"
