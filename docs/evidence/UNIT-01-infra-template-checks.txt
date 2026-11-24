@@ -1,0 +1,8 @@
+UNIT-01 evidence — tests/unit/test_infra_template.py + sam validate --lint
+Captured: 2026-11-24
+
+$ pytest tests/unit/test_infra_template.py
+11 passed in 0.06s
+
+$ sam validate --lint --template infra/template.yaml
+infra/template.yaml is a valid SAM Template
