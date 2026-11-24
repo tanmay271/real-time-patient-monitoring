@@ -69,8 +69,25 @@ already covers the new collaborator's prefix the moment they're added.
 
 ## Cross-prefix denial verification
 
-Outstanding per the `INF-03` acceptance criteria: a test user must be denied
-reading another prefix's table, with the resulting `AccessDenied` error
-pasted into the PR. This has not yet been run against the account from this
-environment (no AWS credentials configured here) and still needs to be
-performed and attached before this task is marked complete.
+Verified against the account: a user scoped to the `tanmay` prefix was denied
+both a cross-prefix table read and a cross-prefix stack change set, not given
+a "not found" response.
+
+`dynamodb:DescribeTable` on `patient-monitoring-otheruser-smoke`:
+
+```
+AccessDeniedException: User: arn:aws:iam::<ACCOUNT_ID>:user/tanmay is not
+authorized to perform: dynamodb:DescribeTable on resource:
+arn:aws:dynamodb:us-east-1:<ACCOUNT_ID>:table/patient-monitoring-otheruser-smoke
+because no identity-based policy allows the dynamodb:DescribeTable action
+```
+
+`cloudformation:CreateChangeSet` on stack `patient-monitoring-otheruser`:
+
+```
+AccessDenied: User: arn:aws:iam::<ACCOUNT_ID>:user/tanmay is not authorized
+to perform: cloudformation:CreateChangeSet on resource:
+arn:aws:cloudformation:us-east-1:<ACCOUNT_ID>:stack/patient-monitoring-otheruser/*
+because no identity-based policy allows the cloudformation:CreateChangeSet
+action
+```
