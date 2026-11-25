@@ -75,13 +75,18 @@ jobs:
           # reading_id hex example) has no word boundary around it and is
           # not flagged.
           PATTERN='\b[0-9]{12}\b|execute-api\.[a-z0-9-]+\.amazonaws\.com|us-east-1_[A-Za-z0-9]{9}'
+          # A line is allowed through only when the invoke-URL host label is
+          # a brace placeholder, e.g. `{api-id}.execute-api...` documenting
+          # the URL shape. A real host label (any non-`{...}` string) still
+          # matches PATTERN above and still fails the scan.
+          PLACEHOLDER='\{[a-z-]+\}\.execute-api'
           HITS=$(grep -rInE "$PATTERN" \
                    --exclude-dir=.git \
                    --exclude-dir=node_modules \
                    --exclude='*.lock' \
                    --exclude='package-lock.json' \
                    --exclude='CODEOWNERS' \
-                   . )
+                   . | grep -vE "$PLACEHOLDER")
           if [ -n "$HITS" ]; then
             echo "::error::Possible AWS identifier committed:"
             echo "$HITS"
