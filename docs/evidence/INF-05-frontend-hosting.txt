@@ -1,0 +1,10 @@
+INF-05 deploy evidence (scratch stack patient-monitoring-tanmay-inf05, Env=tanmay-inf05, us-east-1; deleted afterwards)
+Identifiers redacted: distribution domain shown as <DIST>, bucket as <BUCKET>.
+
+sam deploy: CREATE_COMPLETE for FrontendBucket, FrontendOriginAccessControl, FrontendDistribution, FrontendBucketPolicy.
+Stack output: FrontendDistributionDomainName = <DIST>.cloudfront.net
+
+Placeholder index.html uploaded to <BUCKET> (patient-monitoring-tanmay-inf05-frontend, carries Env prefix).
+GET https://<DIST>/                 -> 200 body: <html><body>placeholder</body></html>
+GET https://<DIST>/no/such/route    -> 200 body: <html><body>placeholder</body></html>   (404 rewrite to /index.html)
+GET https://<BUCKET>.s3.us-east-1.amazonaws.com/index.html -> 403 AccessDenied (bucket not publicly readable)

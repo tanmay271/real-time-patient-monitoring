@@ -21,6 +21,18 @@ both `Env` and the stack name, e.g. `Env=<your-name>-inf01`. See
 "Scoping approach" below for why the IAM policy has to know about this
 second naming shape too.
 
+## Frontend hosting (`INF-05`)
+
+After `sam deploy`, upload the built frontend with:
+
+```text
+aws s3 sync <build-dir> s3://patient-monitoring-<Env>-frontend
+```
+
+Serve it from the `FrontendDistributionDomainName` stack output. Building and
+uploading the actual React app is a separate task (`WEB-09`) and is not done
+here.
+
 ## Teardown
 
 Remove a contributor's main stack with:
