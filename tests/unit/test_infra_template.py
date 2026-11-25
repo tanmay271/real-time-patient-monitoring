@@ -126,15 +126,22 @@ def test_readme_has_deploy_and_teardown_commands():
 
 def test_no_account_id_or_arn_in_committed_files():
     # No real AWS account ID (a 12-digit literal) is ever allowed, in any
-    # file. A bare "arn:aws:" substring, however, is allowed in README.md:
-    # INF-03 documents real IAM AccessDenied output there with an
-    # "<ACCOUNT_ID>" placeholder (not a digit literal), which is itself an
-    # ARN-shaped string. template.yaml and samconfig.toml are fully
-    # parameterized and should never contain an ARN at all.
+    # file. A bare "arn:aws:" substring is allowed in README.md (INF-03
+    # documents real IAM AccessDenied output there with an "<ACCOUNT_ID>"
+    # placeholder) and, as of INF-05, in template.yaml lines that build an
+    # ARN entirely from CloudFormation pseudo parameters / Fn::Sub
+    # references (contain "${") rather than any literal account ID — e.g.
+    # a bucket policy's AWS:SourceArn condition naming a CloudFront
+    # distribution ARN via `${AWS::AccountId}` and `${FrontendDistribution}`.
+    # A fully literal ARN (no "${" on the line) is still rejected everywhere
+    # except README.md.
     for path in COMMITTED_FILES:
         text = path.read_text(encoding="utf-8")
         assert not ACCOUNT_ID_PATTERN.search(text), (
             f"possible account ID literal in {path}"
         )
-        if path != README_PATH:
-            assert not ARN_PATTERN.search(text), f"ARN literal found in {path}"
+        if path == README_PATH:
+            continue
+        for line in text.splitlines():
+            if ARN_PATTERN.search(line) and "${" not in line:
+                raise AssertionError(f"ARN literal found in {path}: {line!r}")
