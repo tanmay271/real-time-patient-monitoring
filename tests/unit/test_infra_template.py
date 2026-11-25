@@ -79,8 +79,11 @@ def test_globals_block_matches_spec():
 
 
 def test_resources_present_and_empty():
+    # True only until the first resource-adding task merges (INF-05 here).
+    # What this test actually guards against is a resource whose name is a
+    # literal string instead of an Fn::Sub using {Env} — see the next test.
     _, template = load_template()
-    assert template["Resources"] == {}
+    assert isinstance(template["Resources"], dict)
 
 
 def test_naming_convention_comment_present():
@@ -90,8 +93,14 @@ def test_naming_convention_comment_present():
 
 
 def test_no_hardcoded_patient_monitoring_resource_name():
-    _, template = load_template()
-    assert template["Resources"] == {}
+    # No resource may carry a literal "patient-monitoring-..." name string;
+    # every name must go through Fn::Sub with {Env}.
+    text, _ = load_template()
+    for line in text.splitlines():
+        if "patient-monitoring-" in line and "patient-monitoring-{Env}-" not in line:
+            assert "Fn::Sub" in line or "!Sub" in line, (
+                f"possible hardcoded resource name: {line!r}"
+            )
 
 
 def test_samconfig_region_is_us_east_1():
