@@ -69,8 +69,12 @@ jobs:
       - name: Scan for AWS account IDs and invoke URLs
         run: |
           set +e
-          # 12-digit account IDs, API Gateway invoke URLs, Cognito pool IDs
-          PATTERN='[0-9]{12}|execute-api\.[a-z0-9-]+\.amazonaws\.com|us-east-1_[A-Za-z0-9]{9}'
+          # 12-digit account IDs, API Gateway invoke URLs, Cognito pool IDs.
+          # \b keeps a real standalone 12-digit account ID matching, while a
+          # 12-digit run that's part of a longer alphanumeric token (e.g. a
+          # reading_id hex example) has no word boundary around it and is
+          # not flagged.
+          PATTERN='\b[0-9]{12}\b|execute-api\.[a-z0-9-]+\.amazonaws\.com|us-east-1_[A-Za-z0-9]{9}'
           HITS=$(grep -rInE "$PATTERN" \
                    --exclude-dir=.git \
                    --exclude-dir=node_modules \

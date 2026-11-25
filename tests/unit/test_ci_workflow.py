@@ -17,7 +17,7 @@ WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 # The no-secrets job's own regex, duplicated here (a GitHub Actions step
 # isn't importable Python). Keep in sync with ci.yml's PATTERN variable.
 GUARD_PATTERN = re.compile(
-    r"[0-9]{12}|execute-api\.[a-z0-9-]+\.amazonaws\.com|us-east-1_[A-Za-z0-9]{9}"
+    r"\b[0-9]{12}\b|execute-api\.[a-z0-9-]+\.amazonaws\.com|us-east-1_[A-Za-z0-9]{9}"
 )
 
 # Fragment-built fixtures: no line below holds 12 consecutive digits or an
@@ -127,3 +127,12 @@ def test_guard_pattern_matches_fake_identifiers():
 def test_guard_pattern_ignores_benign_text():
     assert not GUARD_PATTERN.search("just some ordinary prose, no secrets here")
     assert not GUARD_PATTERN.search("12345678901")  # 11 digits, one short
+
+
+def test_guard_pattern_ignores_digits_embedded_in_a_longer_token():
+    # Regression: docs/api.md documents a reading_id example
+    # ("r-00112233445566778899aabbccddeeff") whose digits run longer than
+    # 12 but are part of one contiguous hex token, not a standalone
+    # 12-digit account ID. \b around the digit pattern must not flag it.
+    fake_reading_id = "r-" + "0011223344" + "5566778899" + "aabbccddeeff"
+    assert not GUARD_PATTERN.search(fake_reading_id)
