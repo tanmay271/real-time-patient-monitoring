@@ -1,0 +1,63 @@
+INF-04 — CI workflow evidence
+==============================
+
+Local checks (full Python path per AGENTS.md)
+----------------------------------------------
+
+$ C:\Users\tanma\AppData\Local\Python\pythoncore-3.13-64\python.exe -m pytest tests/unit -v
+... (29 passed, 1 warning) ...
+======================== 29 passed, 1 warning in 0.12s ========================
+
+$ sam validate --lint --template infra/template.yaml
+C:\dev\wt\INF-04\infra\template.yaml is a valid SAM Template
+
+Real CI runs on PR #88 (infra/INF-04-ci-workflow -> main)
+-----------------------------------------------------------
+
+Run 1 (commit 7b5b59d, the hashFiles job-level-if fix):
+  https://github.com/tanmay271/real-time-patient-monitoring/actions/runs/45597078504
+  - Python unit tests: PASS
+  - Validate SAM template: PASS
+  - Frontend build: PASS (no-op, frontend/package.json still absent)
+  - Guard against committed identifiers: FAIL (2 pre-existing lines in
+    docs/api.md unrelated to this task's diff, see below)
+
+Run 2 (commit f6cc12a, \b word-boundary fix for the account-ID pattern):
+  https://github.com/tanmay271/real-time-patient-monitoring/actions/runs/45597936963
+  - Python unit tests: PASS
+  - Validate SAM template: PASS
+  - Frontend build: PASS
+  - Guard against committed identifiers: FAIL, but now only ONE hit
+    (docs/api.md:7's `{api-id}.execute-api...amazonaws.com` placeholder
+    URL) — the reading_id hex-example false positive from docs/api.md:216
+    is gone, confirming the \b fix.
+
+Identifier-guard fail -> pass demonstration (criterion 4)
+-------------------------------------------------------------
+Run 3 (commit 9941265, deliberate fake 12-digit AWS account ID consisting
+of twelve 9s added to a throwaway scratch file `ci-guard-demo-scratch.txt`):
+  https://github.com/tanmay271/real-time-patient-monitoring/actions/runs/45598092028
+  - Guard against committed identifiers: FAIL, now TWO hits — the
+    pre-existing docs/api.md:7 line, plus the new scratch-file line. The
+    guard correctly caught the deliberate fake identifier.
+
+Run 4 (commit eaa1d05, scratch file removed):
+  https://github.com/tanmay271/real-time-patient-monitoring/actions/runs/45598237279
+  - Guard against committed identifiers: FAIL, back down to ONE hit (only
+    docs/api.md:7). The scratch-file hit is gone, confirming the guard
+    goes from failing to passing-on-that-input once the deliberate
+    identifier is removed.
+
+Known, disclosed limitation (not fixed by this task)
+--------------------------------------------------------
+The `no-secrets` job cannot currently reach all-green on `main`:
+docs/api.md:7 documents the API's base URL shape with a `{api-id}`
+placeholder (`API-01`'s file, out of this task's scope), and the guard's
+`execute-api\.[a-z0-9-]+\.amazonaws\.com` pattern matches that domain
+substring regardless of what placeholder precedes it. A proposed fix
+(excluding brace-placeholder lines from the scan) was not applied here —
+see `decisions.md`, 2026-11-25 — INF-04, open, for the two options put to
+Tanmay. This is why "Identifier guard demonstrated failing on a deliberate
+test commit, then passing" is left annotated rather than checked in the
+PR: the guard's fail/pass *mechanism* is proven above, but the job's
+overall state cannot reach a clean pass until that decision resolves.
