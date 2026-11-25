@@ -1,0 +1,6 @@
+# Mocking approach for DynamoDB unit tests decided in TST-01
+# (tests/test-plan.md): moto. No real AWS calls, no Docker/Java
+# dependency, matches AGENTS.md's Decimal/ConditionExpression/Query rules.
+pytest
+boto3
+moto
