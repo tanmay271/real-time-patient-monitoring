@@ -83,6 +83,18 @@ Resources:
               StringEquals:
                 AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution}"
 
+  PatientsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub patient-monitoring-${Env}-patients
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: patient_id
+          KeyType: HASH
+      AttributeDefinitions:
+        - AttributeName: patient_id
+          AttributeType: S
+
 Outputs:
   FrontendDistributionDomainName:
     Value: !GetAtt FrontendDistribution.DomainName
