@@ -1,0 +1,3 @@
+Scratch file for INF-04's live identifier-guard demonstration.
+Deliberate fake AWS account ID for testing only: 999999999999
+This file is removed in the very next commit.
