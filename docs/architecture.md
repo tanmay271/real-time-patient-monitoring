@@ -751,8 +751,6 @@ Recorded so the changes are reviewable rather than silent.
 
 Decisions pinned here so that six contributors produce compatible code. This section is authoritative; a PR that contradicts it is sent back.
 
-How any contributor drives their own editor or AI assistant is their own business and is not specified by this project. Personal assistant config files are gitignored for that reason — a contributor who uses one points it at this section rather than committing a copy.
-
 ### Versions
 
 | Component | Version | Note |
