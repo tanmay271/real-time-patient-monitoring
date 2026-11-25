@@ -1,0 +1,66 @@
+DAT-03 — `readings` table with TTL on `expires_at` — deploy evidence
+====================================================================
+
+Date: 2026-11-25
+Stack: patient-monitoring-tanmay-dat03 (Env=tanmay-dat03), scratch stack
+Region: us-east-1
+Account identifiers, distribution domain and artifact bucket name omitted.
+
+## local checks
+
+- `python -m pytest tests/unit -q` — 72 passed
+- `sam validate --lint -t infra/template.yaml` — valid SAM Template
+
+## sam deploy (excerpt)
+
+    sam deploy -t infra/template.yaml --stack-name patient-monitoring-tanmay-dat03
+      --region us-east-1 --resolve-s3 --capabilities CAPABILITY_IAM
+      --parameter-overrides Env=tanmay-dat03 --no-confirm-changeset
+
+    + Add   ReadingsTable   AWS::DynamoDB::Table   (with the other template resources)
+
+    CREATE_COMPLETE   AWS::DynamoDB::Table         ReadingsTable
+    CREATE_COMPLETE   AWS::CloudFormation::Stack   patient-monitoring-tanmay-dat03
+
+    Successfully created/updated stack - patient-monitoring-tanmay-dat03 in us-east-1
+
+## aws dynamodb describe-table (selected fields)
+
+    --table-name patient-monitoring-tanmay-dat03-readings
+
+{
+    "TableName": "patient-monitoring-tanmay-dat03-readings",
+    "TableStatus": "ACTIVE",
+    "BillingMode": "PAY_PER_REQUEST",
+    "KeySchema": [
+        {"AttributeName": "patient_id", "KeyType": "HASH"},
+        {"AttributeName": "reading_time", "KeyType": "RANGE"}
+    ],
+    "AttributeDefinitions": [
+        {"AttributeName": "patient_id", "AttributeType": "S"},
+        {"AttributeName": "reading_time", "AttributeType": "S"}
+    ],
+    "GlobalSecondaryIndexes": null,
+    "LocalSecondaryIndexes": null
+}
+
+## aws dynamodb describe-time-to-live
+
+{
+    "TimeToLiveDescription": {
+        "TimeToLiveStatus": "ENABLED",
+        "AttributeName": "expires_at"
+    }
+}
+
+No items were written; seeding and read-back belong to DAT-05.
+
+## teardown
+
+    sam delete --stack-name patient-monitoring-tanmay-dat03 --region us-east-1 --no-prompts
+    Deleted successfully
+
+Confirmed afterwards:
+- describe-stacks: stack does not exist
+- describe-table: readings and patients tables not found
+- head-bucket on the stack's frontend bucket: 404 Not Found
