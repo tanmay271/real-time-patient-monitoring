@@ -78,9 +78,12 @@ def test_globals_block_matches_spec():
     assert function_globals["MemorySize"] == 256
 
 
-def test_resources_present_and_empty():
+def test_resources_key_present():
+    # INF-01's skeleton required Resources == {}. Later tasks (starting with
+    # DAT-02) add real resources, so this now only checks the key survives
+    # as a mapping, not that it stays empty.
     _, template = load_template()
-    assert template["Resources"] == {}
+    assert isinstance(template["Resources"], dict)
 
 
 def test_naming_convention_comment_present():
@@ -90,8 +93,16 @@ def test_naming_convention_comment_present():
 
 
 def test_no_hardcoded_patient_monitoring_resource_name():
+    # Every resource name must be built with Fn::Sub against the Env
+    # parameter, never a literal "patient-monitoring-<concrete-env>-..."
+    # string baked into a resource property.
     _, template = load_template()
-    assert template["Resources"] == {}
+    literal_pattern = re.compile(r"patient-monitoring-(?!\{Env\}|\$\{Env\})[a-z0-9]+-")
+    for resource in template["Resources"].values():
+        properties = resource.get("Properties", {})
+        assert not literal_pattern.search(str(properties)), (
+            f"literal resource name found in {resource}"
+        )
 
 
 def test_samconfig_region_is_us_east_1():
