@@ -38,18 +38,27 @@ jobs:
   build-frontend:
     name: Frontend build
     runs-on: ubuntu-latest
-    # Remove the condition once frontend/ exists (task WEB-01)
-    if: hashFiles('frontend/package.json') != ''
     steps:
       - uses: actions/checkout@v4
+      - name: Check for frontend package
+        id: frontend-check
+        run: |
+          if [ -f frontend/package.json ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-node@v4
+        if: steps.frontend-check.outputs.exists == 'true'
         with:
           node-version: '20'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+        if: steps.frontend-check.outputs.exists == 'true'
         working-directory: frontend
       - run: npm run build
+        if: steps.frontend-check.outputs.exists == 'true'
         working-directory: frontend
 
   no-secrets:
@@ -60,15 +69,24 @@ jobs:
       - name: Scan for AWS account IDs and invoke URLs
         run: |
           set +e
-          # 12-digit account IDs, API Gateway invoke URLs, Cognito pool IDs
-          PATTERN='[0-9]{12}|execute-api\.[a-z0-9-]+\.amazonaws\.com|us-east-1_[A-Za-z0-9]{9}'
+          # 12-digit account IDs, API Gateway invoke URLs, Cognito pool IDs.
+          # \b keeps a real standalone 12-digit account ID matching, while a
+          # 12-digit run that's part of a longer alphanumeric token (e.g. a
+          # reading_id hex example) has no word boundary around it and is
+          # not flagged.
+          PATTERN='\b[0-9]{12}\b|execute-api\.[a-z0-9-]+\.amazonaws\.com|us-east-1_[A-Za-z0-9]{9}'
+          # A line is allowed through only when the invoke-URL host label is
+          # a brace placeholder, e.g. `{api-id}.execute-api...` documenting
+          # the URL shape. A real host label (any non-`{...}` string) still
+          # matches PATTERN above and still fails the scan.
+          PLACEHOLDER='\{[a-z-]+\}\.execute-api'
           HITS=$(grep -rInE "$PATTERN" \
                    --exclude-dir=.git \
                    --exclude-dir=node_modules \
                    --exclude='*.lock' \
                    --exclude='package-lock.json' \
                    --exclude='CODEOWNERS' \
-                   . )
+                   . | grep -vE "$PLACEHOLDER")
           if [ -n "$HITS" ]; then
             echo "::error::Possible AWS identifier committed:"
             echo "$HITS"
