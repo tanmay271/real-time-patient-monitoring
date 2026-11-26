@@ -1,8 +1,8 @@
 # Infrastructure
 
-This SAM template starts as a skeleton with no AWS resources; later tasks
-(`DAT-02`-`04`, `ING-01`, `API-02`, `AUT-01`, `INF-05`, ...) add resources
-using the naming convention documented in `template.yaml`. This file also
+This SAM template defines the shared infrastructure resources for the
+synthetic patient-monitoring application, using the naming convention
+documented in `template.yaml`. This file also
 covers the IAM group and policy in `infra/iam-policy.json` (`INF-03`) — the
 mechanism that lets six collaborators share one AWS account without being
 able to touch each other's resources.
@@ -32,6 +32,17 @@ aws s3 sync <build-dir> s3://patient-monitoring-<Env>-frontend
 Serve it from the `FrontendDistributionDomainName` stack output. Building and
 uploading the actual React app is a separate task (`WEB-09`) and is not done
 here.
+
+## Ingest function (`ING-01`)
+
+The ingest function receives the table names through the `PATIENTS_TABLE` and
+`READINGS_TABLE` environment variables. Its dedicated execution role allows
+the Lambda basic execution policy for logging, `dynamodb:PutItem` on the
+readings table, and `dynamodb:UpdateItem` on the patients table.
+
+It currently answers every invocation with an `INTERNAL_ERROR`; no route
+reaches it yet. The stack must be named `patient-monitoring-<Env>` so the
+generated role name remains inside the developer policy pattern.
 
 ## Teardown
 

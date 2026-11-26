@@ -1,0 +1,60 @@
+ING-01 — Handler skeleton, table env vars, execution role
+Date: 2026-11-25. Region us-east-1. Account IDs are redacted.
+
+## Local checks
+
+pytest tests/unit            -> 94 passed
+sam validate --lint -t infra/template.yaml -> valid SAM Template
+
+## Build and deploy (scratch stack)
+
+sam build -t infra/template.yaml --build-dir <build-dir>
+sam deploy -t <build-dir>/template.yaml \
+  --stack-name patient-monitoring-tanmay-ing01 --region us-east-1 \
+  --resolve-s3 --capabilities CAPABILITY_IAM \
+  --parameter-overrides Env=tanmay-ing01
+
+Result: Successfully created/updated stack. IngestRole and IngestFunction
+reached CREATE_COMPLETE. The change set held no API, event source or log group
+resource.
+
+## aws lambda get-function-configuration
+
+FunctionName  patient-monitoring-tanmay-ing01-ingest
+Runtime       python3.13
+Handler       ingest.handler.lambda_handler
+Timeout       10
+MemorySize    256
+State         Active
+Role          arn:aws:iam::<ACCOUNT_ID>:role/patient-monitoring-tanmay-ing01-IngestRole-<suffix>
+Environment   PATIENTS_TABLE=patient-monitoring-tanmay-ing01-patients
+              READINGS_TABLE=patient-monitoring-tanmay-ing01-readings
+
+## Execution role (get-role, list-attached-role-policies, get-role-policy)
+
+Trust:    lambda.amazonaws.com, sts:AssumeRole (only statement)
+Attached: AWSLambdaBasicExecutionRole (only managed policy)
+Inline:   patient-monitoring-tanmay-ing01-ingest-tables (only inline policy)
+  Allow dynamodb:PutItem
+    arn:aws:dynamodb:us-east-1:<ACCOUNT_ID>:table/patient-monitoring-tanmay-ing01-readings
+  Allow dynamodb:UpdateItem
+    arn:aws:dynamodb:us-east-1:<ACCOUNT_ID>:table/patient-monitoring-tanmay-ing01-patients
+
+## aws lambda invoke (payload {})
+
+StatusCode 200, FunctionError null
+{"statusCode": 500, "headers": {"Content-Type": "application/json"},
+ "body": "{\"error\": {\"code\": \"INTERNAL_ERROR\", \"message\": \"ingestion is not implemented yet\"}}"}
+
+aws lambda get-policy -> ResourceNotFoundException (nothing is granted
+permission to invoke the function). Listing event source mappings was not
+permitted for the deploying user, so that was not queried.
+
+## Teardown
+
+sam delete --stack-name patient-monitoring-tanmay-ing01 --no-prompts
+  -> Deleted successfully
+Auto-created log group /aws/lambda/patient-monitoring-tanmay-ing01-ingest
+deleted.
+Afterwards: describe-stacks, get-function, get-role and describe-table (both
+tables) all report that the resource does not exist.
