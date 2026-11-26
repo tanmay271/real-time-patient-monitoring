@@ -1,0 +1,251 @@
+DAT-04 — `alerts` table with GSI1 and GSI2 — deploy evidence
+============================================================
+
+Date: 2026-11-25
+Stack: patient-monitoring-tanmay-dat04 (Env=tanmay-dat04), scratch stack
+Region: us-east-1
+Account identifiers, distribution domain and artifact bucket name omitted.
+All items below are synthetic.
+
+## local checks
+
+- `python -m pytest tests/unit -q` — 80 passed, 1 warning in 2.16s
+- `sam validate --lint -t infra/template.yaml` — infra/template.yaml is a valid SAM Template
+
+## sam deploy (excerpt)
+
+    sam deploy -t infra/template.yaml --stack-name patient-monitoring-tanmay-dat04
+      --region us-east-1 --resolve-s3 --capabilities CAPABILITY_IAM
+      --parameter-overrides Env=tanmay-dat04 --no-confirm-changeset
+
+    + Add   AlertsTable   AWS::DynamoDB::Table   (with the other template resources)
+
+    CREATE_COMPLETE   AWS::DynamoDB::Table         AlertsTable
+    CREATE_COMPLETE   AWS::CloudFormation::Stack   patient-monitoring-tanmay-dat04
+
+    Successfully created/updated stack - patient-monitoring-tanmay-dat04 in us-east-1
+
+## deployed table, synthetic items and both index queries
+
+Output of a boto3 check (DescribeTable, DescribeTimeToLive, conditional
+PutItem of four alerts, then Query on each index).
+
+
+    ### DescribeTable (selected fields)
+    {
+      "TableName": "patient-monitoring-tanmay-dat04-alerts",
+      "TableStatus": "ACTIVE",
+      "BillingMode": "PAY_PER_REQUEST",
+      "KeySchema": [
+        {
+          "AttributeName": "alert_id",
+          "KeyType": "HASH"
+        }
+      ],
+      "AttributeDefinitions": [
+        {
+          "AttributeName": "alert_id",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "created_at",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "patient_rule",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "status",
+          "AttributeType": "S"
+        }
+      ],
+      "GlobalSecondaryIndexes": [
+        {
+          "IndexName": "GSI1",
+          "IndexStatus": "ACTIVE",
+          "KeySchema": [
+            {
+              "AttributeName": "patient_rule",
+              "KeyType": "HASH"
+            },
+            {
+              "AttributeName": "status",
+              "KeyType": "RANGE"
+            }
+          ],
+          "Projection": {
+            "ProjectionType": "ALL"
+          }
+        },
+        {
+          "IndexName": "GSI2",
+          "IndexStatus": "ACTIVE",
+          "KeySchema": [
+            {
+              "AttributeName": "status",
+              "KeyType": "HASH"
+            },
+            {
+              "AttributeName": "created_at",
+              "KeyType": "RANGE"
+            }
+          ],
+          "Projection": {
+            "ProjectionType": "ALL"
+          }
+        }
+      ],
+      "LocalSecondaryIndexes": null
+    }
+
+    ### DescribeTimeToLive
+    {
+      "TimeToLiveStatus": "DISABLED"
+    }
+
+    ### PutItem: synthetic alerts written (alert_id, patient_rule, status, created_at)
+    [
+      [
+        "a-11111111111111111111111111111111",
+        "P002#low_spo2",
+        "active",
+        "2026-11-17T14:22:05Z"
+      ],
+      [
+        "a-22222222222222222222222222222222",
+        "P002#low_spo2",
+        "resolved",
+        "2026-11-17T14:10:00Z"
+      ],
+      [
+        "a-33333333333333333333333333333333",
+        "P003#fever",
+        "active",
+        "2026-11-17T14:20:00Z"
+      ],
+      [
+        "a-44444444444444444444444444444444",
+        "P001#high_heart_rate",
+        "acknowledged",
+        "2026-11-17T14:21:00Z"
+      ]
+    ]
+
+    ### Query GSI1: patient_rule = P002#low_spo2 AND status = active
+    {
+      "Count": 1,
+      "ScannedCount": 1,
+      "Items": [
+        {
+          "resolved_at": null,
+          "severity": "critical",
+          "status": "active",
+          "created_at": "2026-11-17T14:22:05Z",
+          "rule": "low_spo2",
+          "alert_id": "a-11111111111111111111111111111111",
+          "patient_id": "P002",
+          "acknowledged_at": null,
+          "acknowledged_by": null,
+          "patient_rule": "P002#low_spo2"
+        }
+      ]
+    }
+
+    ### Query GSI1: patient_rule = P002#fever AND status = active
+    {
+      "Count": 0,
+      "ScannedCount": 0,
+      "Items": []
+    }
+
+    ### Query GSI1: patient_rule = P001#high_heart_rate AND status = active
+    {
+      "Count": 0,
+      "ScannedCount": 0,
+      "Items": []
+    }
+
+    ### Query GSI2: status = active, ScanIndexForward = false
+    {
+      "Count": 2,
+      "ScannedCount": 2,
+      "Items": [
+        {
+          "acknowledged_at": null,
+          "created_at": "2026-11-17T14:22:05Z",
+          "severity": "critical",
+          "acknowledged_by": null,
+          "patient_id": "P002",
+          "patient_rule": "P002#low_spo2",
+          "resolved_at": null,
+          "alert_id": "a-11111111111111111111111111111111",
+          "status": "active",
+          "rule": "low_spo2"
+        },
+        {
+          "acknowledged_at": null,
+          "created_at": "2026-11-17T14:20:00Z",
+          "acknowledged_by": null,
+          "patient_id": "P003",
+          "rule": "fever",
+          "resolved_at": null,
+          "patient_rule": "P003#fever",
+          "alert_id": "a-33333333333333333333333333333333",
+          "status": "active",
+          "severity": "warning"
+        }
+      ]
+    }
+
+    ### Query GSI2: status = acknowledged, ScanIndexForward = false
+    {
+      "Count": 1,
+      "ScannedCount": 1,
+      "Items": [
+        {
+          "acknowledged_by": "operator@example.test",
+          "alert_id": "a-44444444444444444444444444444444",
+          "rule": "high_heart_rate",
+          "status": "acknowledged",
+          "patient_id": "P001",
+          "created_at": "2026-11-17T14:21:00Z",
+          "patient_rule": "P001#high_heart_rate",
+          "acknowledged_at": "2026-11-17T14:21:30Z",
+          "resolved_at": null,
+          "severity": "warning"
+        }
+      ]
+    }
+
+    ### Query GSI2: status = resolved, ScanIndexForward = false
+    {
+      "Count": 1,
+      "ScannedCount": 1,
+      "Items": [
+        {
+          "status": "resolved",
+          "resolved_at": "2026-11-17T14:12:00Z",
+          "alert_id": "a-22222222222222222222222222222222",
+          "acknowledged_at": "2026-11-17T14:10:30Z",
+          "rule": "low_spo2",
+          "acknowledged_by": "operator@example.test",
+          "patient_id": "P002",
+          "severity": "warning",
+          "patient_rule": "P002#low_spo2",
+          "created_at": "2026-11-17T14:10:00Z"
+        }
+      ]
+    }
+
+    All query assertions passed.
+
+## teardown
+
+    sam delete --stack-name patient-monitoring-tanmay-dat04 --region us-east-1 --no-prompts
+    Deleted successfully
+
+Confirmed afterwards:
+- describe-stacks: stack does not exist
+- describe-table: alerts and patients tables not found
+- head-bucket on the stack's frontend bucket: 404 Not Found
