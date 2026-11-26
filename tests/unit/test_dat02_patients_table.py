@@ -42,12 +42,16 @@ def _dynamodb_table_resources(template):
     }
 
 
-def test_exactly_one_dynamodb_table_exists():
-    # True as of DAT-02; DAT-03/DAT-04 add the next tables and update this
-    # count the same way DAT-02 updates INF-01's "zero resources" check.
+def test_exactly_one_table_is_named_patients():
+    # Counts only the patients table, so later table tasks can add theirs.
     template = load_template()
-    tables = _dynamodb_table_resources(template)
-    assert len(tables) == 1, f"expected exactly one DynamoDB table, found {list(tables)}"
+    matches = [
+        logical_id
+        for logical_id, resource in _dynamodb_table_resources(template).items()
+        if resource["Properties"].get("TableName")
+        == {"Fn::Sub": "patient-monitoring-${Env}-patients"}
+    ]
+    assert matches == ["PatientsTable"]
 
 
 def test_patients_table_logical_id_and_type():

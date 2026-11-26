@@ -95,6 +95,25 @@ Resources:
         - AttributeName: patient_id
           AttributeType: S
 
+  ReadingsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub patient-monitoring-${Env}-readings
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: patient_id
+          KeyType: HASH
+        - AttributeName: reading_time
+          KeyType: RANGE
+      AttributeDefinitions:
+        - AttributeName: patient_id
+          AttributeType: S
+        - AttributeName: reading_time
+          AttributeType: S
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
+
 Outputs:
   FrontendDistributionDomainName:
     Value: !GetAtt FrontendDistribution.DomainName
