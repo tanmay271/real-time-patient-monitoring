@@ -184,8 +184,49 @@ Resources:
         Variables:
           PATIENTS_TABLE: !Ref PatientsTable
           READINGS_TABLE: !Ref ReadingsTable
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub "patient-monitoring-${Env}-users"
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 12
+          RequireLowercase: true
+          RequireUppercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          TemporaryPasswordValidityDays: 7
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub "patient-monitoring-${Env}-web-client"
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      PreventUserExistenceErrors: ENABLED
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
 
 Outputs:
   FrontendDistributionDomainName:
     Value: !GetAtt FrontendDistribution.DomainName
     Description: CloudFront domain for the frontend - input to AUT-02 (Cognito callback URL) and API-07 (CORS origin)
+  CognitoUserPoolId:
+    Value: !Ref UserPool
+    Description: Cognito user pool ID for API authentication
+
+  CognitoUserPoolClientId:
+    Value: !Ref UserPoolClient
+    Description: Cognito app client ID for the browser application
+
+  CognitoIssuerUrl:
+    Value: !Sub "https://cognito-idp.${AWS::Region}.${AWS::URLSuffix}/${UserPool}"
+    Description: Cognito token issuer URL for JWT validation
